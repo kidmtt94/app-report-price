@@ -1,0 +1,83 @@
+name: 📈 Daily Stock Market Report - 17:00 ICT
+
+on:
+  schedule:
+    # 10:00 UTC = 17:00 ICT (UTC+7), Thứ 2 đến Thứ 6
+    - cron: '0 10 * * 1-5'
+  # Cho phép chạy thủ công từ GitHub UI (để test)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Chạy thử không gửi Bark notification?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      skip_llm:
+        description: 'Bỏ qua Gemini LLM, dùng template?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  run-report:
+    name: 🚀 Chạy báo cáo thị trường
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 📦 Cài đặt dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🕔 Kiểm tra thời gian hiện tại (ICT)
+        run: |
+          echo "UTC time: $(date -u)"
+          echo "ICT time: $(TZ='Asia/Ho_Chi_Minh' date)"
+
+      - name: 📊 Chạy báo cáo chứng khoán (Scheduled)
+        if: github.event_name == 'schedule'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BARK_KEY: ${{ secrets.BARK_KEY }}
+          BARK_SERVER: ${{ secrets.BARK_SERVER }}
+          PYTHONIOENCODING: utf-8
+        run: python main.py
+
+      - name: 📊 Chạy báo cáo chứng khoán (Manual)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BARK_KEY: ${{ secrets.BARK_KEY }}
+          BARK_SERVER: ${{ secrets.BARK_SERVER }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ "${{ github.event.inputs.skip_llm }}" == "true" ]; then
+            ARGS="$ARGS --skip-llm"
+          fi
+          python main.py $ARGS
+
+      - name: 📁 Upload báo cáo Markdown
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-report-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
