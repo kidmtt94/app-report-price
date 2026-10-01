@@ -41,7 +41,7 @@ jobs:
           cache: 'pip'
 
       - name: 📦 Cài đặt dependencies
-        run: pip install -r requirements.txt
+        run: pip install --extra-index-url https://vnstocks.com/api/simple -r requirements.txt
 
       - name: 🕔 Kiểm tra thời gian hiện tại (ICT)
         run: |
