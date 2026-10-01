@@ -16,9 +16,20 @@ Phân tích bằng **AI Gemini**, chạy hoàn toàn **miễn phí** trên GitHu
 
 ---
 
-## 🚀 Cài đặt — Chỉ 3 bước
+## 🚀 Cài đặt — Chỉ 4 bước
 
-### Bước 1 — Lấy 2 khóa API
+### Bước 1 — Fork repo này về tài khoản GitHub của bạn
+
+> GitHub Actions chạy dưới tài khoản của **bạn** — nên bạn cần có bản sao repo này trên GitHub của mình.
+
+1. Vào trang repo này trên GitHub
+2. Bấm nút **"Fork"** góc trên phải
+3. Bấm **"Create fork"** — xong! Bạn đã có repo riêng với đầy đủ code và workflow
+
+---
+
+### Bước 2 — Lấy 2 khóa API
+
 
 **🤖 Gemini API Key** (để AI phân tích thị trường):
 1. Vào trang [Google AI Studio](https://aistudio.google.com/app/apikey)
@@ -32,7 +43,7 @@ Phân tích bằng **AI Gemini**, chạy hoàn toàn **miễn phí** trên GitHu
 
 ---
 
-### Bước 2 — Cài khóa vào GitHub Secrets
+### Bước 3 — Cài khóa vào GitHub Secrets
 
 > Đây là nơi lưu khóa an toàn, **không ai xem được ngoài bạn**.
 
@@ -48,7 +59,7 @@ Phân tích bằng **AI Gemini**, chạy hoàn toàn **miễn phí** trên GitHu
 
 ---
 
-### Bước 3 — Tùy chỉnh cổ phiếu theo dõi
+### Bước 4 — Tùy chỉnh cổ phiếu theo dõi
 
 Mở file [`.github/workflows/daily-report.yml`](.github/workflows/daily-report.yml), tìm đến dòng lệnh `python main.py`:
 
