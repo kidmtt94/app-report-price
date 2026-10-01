@@ -2,8 +2,9 @@ name: 📈 Daily Stock Market Report - 17:00 ICT
 
 on:
   schedule:
-    # 10:00 UTC = 17:00 ICT (UTC+7), Thứ 2 đến Thứ 6
-    - cron: '0 10 * * 1-5'
+    # 9:50 UTC = 16:50 ICT (UTC+7), Thứ 2 đến Thứ 6
+    # Set sớm 10 phút để bù đắp độ trễ thực tế của GitHub Actions (~5-15 phút)
+    - cron: '50 9 * * 1-5'
   # Cho phép chạy thủ công từ GitHub UI (để test)
   workflow_dispatch:
     inputs:
@@ -55,7 +56,7 @@ jobs:
           BARK_KEY: ${{ secrets.BARK_KEY }}
           BARK_SERVER: ${{ secrets.BARK_SERVER }}
           PYTHONIOENCODING: utf-8
-        run: python main.py
+        run: python main.py --watchlist "EVF,PLX,EIB"
 
       - name: 📊 Chạy báo cáo chứng khoán (Manual)
         if: github.event_name == 'workflow_dispatch'
@@ -72,7 +73,7 @@ jobs:
           if [ "${{ github.event.inputs.skip_llm }}" == "true" ]; then
             ARGS="$ARGS --skip-llm"
           fi
-          python main.py $ARGS
+          python main.py --watchlist "EVF,PLX,EIB" $ARGS
 
       - name: 📁 Upload báo cáo Markdown
         if: always()

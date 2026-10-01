@@ -1,78 +1,82 @@
-# 📈 Vietnam Stock Market Mini SWE Agent
+# 📈 Báo Cáo Chứng Khoán Tự Động — Miễn Phí Hoàn Toàn
 
-Hệ thống Agent tự động hóa thu thập, phân tích dữ liệu thị trường chứng khoán Việt Nam (**VNINDEX, VN30, VN100** và danh mục theo dõi) mỗi ngày lúc **17:00** và gửi thông báo trực tiếp về iPhone qua **Bark**.
-
----
-
-## 🚀 Tính năng nổi bật
-
-1. **Thu thập dữ liệu tự động**: Cập nhật giá đóng cửa, mức tăng/giảm điểm, % biến động và thanh khoản phiên của VNINDEX, VN30, VN100.
-2. **Bộ não phân tích Gemini 2.5 Flash**: Tự động đánh giá trạng thái thị trường, nhóm ngành dẫn dắt và đưa ra nhận định xu hướng súc tích.
-3. **Thông báo đẩy như iMessage qua Bark**: Reng chuông và hiện pop-up notification trực tiếp trên màn hình khóa iPhone.
-4. **Nhật ký Markdown**: Tự động lưu trữ báo cáo chi tiết vào thư mục `./reports/YYYY-MM-DD.md`.
-5. **Cấu hình 100% qua CLI & .env**: Tùy biến linh hoạt qua tham số dòng lệnh.
-6. **Lập lịch tự động 1-click**: Tích hợp sẵn Windows Task Scheduler chạy đúng 17:00 từ Thứ Hai đến Thứ Sáu.
+Tự động gửi **thông báo chứng khoán về iPhone** mỗi ngày lúc **17:00** (Thứ 2 → Thứ 6).  
+Phân tích bằng **AI Gemini**, chạy hoàn toàn **miễn phí** trên GitHub.
 
 ---
 
-## 🛠️ Cài đặt nhanh
+## ✨ Tính năng — Tất cả đều FREE
 
-### 1. Cài đặt thư viện
-```powershell
-pip install -r requirements.txt
-```
-
-### 2. Chuẩn bị Key
-- **Bark Key**: Tải app **Bark - Customed Notifications** trên App Store (iPhone). Mở app copy khóa cá nhân (dạng `https://api.day.app/YOUR_KEY/` -> lấy `YOUR_KEY`).
-- **Gemini API Key**: Lấy miễn phí tại [Google AI Studio](https://aistudio.google.com/app/apikey).
-
-*(Có thể tạo file `.env` từ file `.env.example` hoặc truyền trực tiếp qua tham số dòng lệnh CLI).*
+| Tính năng | Chi phí |
+|---|---|
+| 🤖 Phân tích thị trường bằng AI Gemini 2.5 Flash | **Miễn phí** (Google AI Studio) |
+| ⏰ Tự động chạy mỗi ngày 17:00 trên GitHub Actions | **Miễn phí** (GitHub) |
+| 📱 Gửi thông báo đẩy về iPhone qua Bark | **Miễn phí** (app Bark) |
+| 📊 Theo dõi VNINDEX, VN30, VN100 và cổ phiếu riêng | **Miễn phí** |
 
 ---
 
-## 💻 Hướng dẫn sử dụng
+## 🚀 Cài đặt — Chỉ 3 bước
 
-### 1. Chạy thử nghiệm không gửi thông báo (`--dry-run`)
-```powershell
-python main.py --dry-run --skip-llm
-```
+### Bước 1 — Lấy 2 khóa API
 
-### 2. Chạy với Gemini và danh mục theo dõi riêng (`--watchlist`)
-```powershell
-python main.py --gemini-api-key "AIzaSy..." --bark-key "YOUR_BARK_KEY" --watchlist "HPG,FPT,VCB"
-```
+**🤖 Gemini API Key** (để AI phân tích thị trường):
+1. Vào trang [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Đăng nhập bằng tài khoản Google
+3. Bấm **"Create API Key"** → Copy khóa vừa tạo
 
-### 3. Xem danh sách toàn bộ các cờ tùy biến
-```powershell
-python main.py --help
-```
-
-| Tham số | Mặc định | Mô tả |
-| :--- | :--- | :--- |
-| `--symbols` | `VNINDEX,VN30,VN100` | Danh sách chỉ số thị trường |
-| `--watchlist` | *(trống)* | Danh sách mã cổ phiếu cá nhân (vd: `HPG,FPT`) |
-| `--gemini-api-key`| Đọc từ `.env` | Google Gemini API Key |
-| `--gemini-model` | `gemini-2.5-flash` | Model Gemini sử dụng |
-| `--bark-key` | Đọc từ `.env` | Khóa thiết bị Bark trên iOS |
-| `--bark-server` | `https://api.day.app`| Server Bark |
-| `--report-dir` | `./reports` | Thư mục lưu trữ báo cáo Markdown |
-| `--dry-run` | `False` | Chỉ in ra console và lưu file, không bắn Bark |
-| `--skip-llm` | `False` | Dùng mẫu báo cáo thuần thống kê, không gọi Gemini |
+**📱 Bark Key** (để nhận thông báo trên iPhone):
+1. Mở App Store trên iPhone, tìm và tải app **"Bark"**
+2. Mở app Bark → màn hình chính hiển thị sẵn khóa của bạn
+3. Copy phần mã sau `https://api.day.app/` — đó là Bark Key
 
 ---
 
-## ⏰ Cài đặt tự động chạy lúc 17:00 (Windows Task Scheduler)
+### Bước 2 — Cài khóa vào GitHub Secrets
 
-Mở **PowerShell** trong thư mục dự án và chạy:
+> Đây là nơi lưu khóa an toàn, **không ai xem được ngoài bạn**.
 
-```powershell
-# Cài đặt tự động chạy vào 17:00 từ Thứ 2 đến Thứ 6:
-.\setup_scheduler.ps1 -BarkKey "YOUR_BARK_KEY" -GeminiApiKey "YOUR_GEMINI_KEY" -Watchlist "HPG,FPT"
+1. Vào repo GitHub của bạn
+2. Bấm **Settings** (góc trên phải repo)
+3. Chọn **Secrets and variables → Actions**
+4. Bấm **"New repository secret"**, thêm lần lượt 2 secret:
 
-# Kích hoạt chạy thử ngay lập tức qua Task Scheduler:
-Start-ScheduledTask -TaskName "VNStock-Daily-Agent"
+| Tên secret | Giá trị |
+|---|---|
+| `GEMINI_API_KEY` | Dán Gemini API Key vào đây |
+| `BARK_KEY` | Dán Bark Key vào đây |
 
-# Khi muốn gỡ bỏ lịch:
-.\setup_scheduler.ps1 -Uninstall
+---
+
+### Bước 3 — Tùy chỉnh cổ phiếu theo dõi
+
+Mở file [`.github/workflows/daily-report.yml`](.github/workflows/daily-report.yml), tìm đến dòng lệnh `python main.py`:
+
+```yaml
+run: python main.py --watchlist "EVF,PLX,EIB"
 ```
 
+**Sửa theo ý muốn:**
+
+- Thêm/xóa mã cổ phiếu trong `--watchlist` (cách nhau bằng dấu phẩy):
+  ```yaml
+  # Ví dụ theo dõi HPG, FPT, VCB:
+  run: python main.py --watchlist "HPG,FPT,VCB"
+  ```
+
+- Muốn thay chỉ số thị trường (mặc định là `VNINDEX,VN30,VN100`), thêm `--symbols`:
+  ```yaml
+  run: python main.py --symbols "VNINDEX,VN30" --watchlist "HPG,FPT"
+  ```
+
+Sau khi sửa, **commit & push** là xong — GitHub tự động áp dụng ngay.
+
+---
+
+## ⏰ Lịch chạy tự động
+
+Hệ thống tự chạy **~17:00 ICT, Thứ 2 → Thứ 6** — không cần làm gì thêm sau khi cài đặt xong.
+
+> **Lưu ý:** GitHub Actions không đảm bảo chạy chính xác đến phút. Do hàng triệu job chạy đồng thời trên GitHub, thông báo thực tế có thể đến muộn hơn **5–15 phút** so với giờ cài đặt — hoàn toàn bình thường.
+
+Muốn **chạy thử thủ công**: Vào repo → **Actions** → **Daily Stock Market Report** → **Run workflow**.
