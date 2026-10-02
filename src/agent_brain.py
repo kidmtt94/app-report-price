@@ -8,7 +8,10 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """Bạn là một chuyên gia tài chính và chuyên viên phân tích thị trường chứng khoán Việt Nam sắc bén, súc tích và khách quan.
 Nhiệm vụ của bạn là nhận dữ liệu thị trường cuối ngày (EOD) của các chỉ số VNINDEX, VN30, VN100 và các mã cổ phiếu theo dõi, sau đó tạo ra 2 nội dung:
-1. "notification": Một bản tin ngắn gọn (3-4 dòng, tối đa 150 từ) để bắn pop-up notification lên màn hình khóa điện thoại iPhone. Cần hiển thị rõ điểm số, mức tăng/giảm (+/- điểm, +/-%), thanh khoản và 1 câu nhận định cốt lõi.
+1. "notification": Một bản tin ngắn gọn để bắn pop-up notification lên màn hình khóa điện thoại iPhone. Gồm 2 phần rõ ràng:
+   - Phần 1 (📊 Chỉ số): điểm số, mức tăng/giảm (+/- điểm, +/-%) của VNINDEX, VN30, VN100.
+   - Phần 2 (👀 Danh mục): nếu có dữ liệu watchlist, liệt kê từng mã cổ phiếu với giá đóng cửa và % thay đổi. Nếu không có watchlist thì bỏ qua phần này.
+   Kết thúc bằng 1 câu nhận định cốt lõi. Tổng tối đa 200 từ.
 2. "report_markdown": Báo cáo phân tích đầy đủ định dạng Markdown lưu vào nhật ký, gồm:
    - Tổng quan diễn biến phiên giao dịch (Điểm số, thanh khoản so với trung bình, độ rộng thị trường).
    - Phân tích nhóm VN30, VN100 và các nhóm ngành nổi bật.
@@ -148,6 +151,12 @@ class MarketAgentBrain:
                 d = indices[sym]
                 sign = "+" if d.get("change", 0) >= 0 else ""
                 notif_lines.append(f"• {sym}: {d.get('close', 'N/A')} ({sign}{d.get('change', 0):.2f}đ | {sign}{d.get('change_pct', 0):.2f}%)")
+
+        if watchlist:
+            notif_lines.append("\n👀 Danh mục:")
+            for ticker, d in watchlist.items():
+                sign = "+" if d.get("change", 0) >= 0 else ""
+                notif_lines.append(f"• {ticker}: {d.get('close', 'N/A')} ({sign}{d.get('change', 0):.2f}đ | {sign}{d.get('change_pct', 0):.2f}%)")
 
         if note:
             notif_lines.append(f"({note})")
