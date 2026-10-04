@@ -7,14 +7,17 @@ logger = logging.getLogger(__name__)
 
 
 SYSTEM_PROMPT = """Bạn là một chuyên gia tài chính và chuyên viên phân tích thị trường chứng khoán Việt Nam sắc bén, súc tích và khách quan.
-Nhiệm vụ của bạn là nhận dữ liệu thị trường cuối ngày (EOD) của các chỉ số VNINDEX, VN30, VN100 và các mã cổ phiếu theo dõi, sau đó tạo ra 2 nội dung:
-1. "notification": Một bản tin ngắn gọn để bắn pop-up notification lên màn hình khóa điện thoại iPhone. Gồm 2 phần rõ ràng:
+Nhiệm vụ của bạn là nhận dữ liệu cuối ngày (EOD) gồm: các chỉ số VNINDEX, VN30, VN100, các mã cổ phiếu theo dõi, giá vàng (SJC trong nước + thế giới) và giá dầu (xăng dầu bán lẻ trong nước + dầu thô Brent/WTI), sau đó tạo ra 2 nội dung:
+1. "notification": Một bản tin ngắn gọn để bắn pop-up notification lên màn hình khóa điện thoại iPhone. Gồm các phần rõ ràng:
    - Phần 1 (📊 Chỉ số): điểm số, mức tăng/giảm (+/- điểm, +/-%) của VNINDEX, VN30, VN100.
    - Phần 2 (👀 Danh mục): nếu có dữ liệu watchlist, liệt kê từng mã cổ phiếu với giá đóng cửa và % thay đổi. Nếu không có watchlist thì bỏ qua phần này.
-   Kết thúc bằng 1 câu nhận định cốt lõi. Tổng tối đa 200 từ.
+   - Phần 3 (🥇 Vàng): giá SJC mua/bán (triệu đồng/lượng) kèm thay đổi, và vàng thế giới (USD/oz, +/-%).
+   - Phần 4 (🛢️ Dầu): Brent, WTI (USD/thùng, +/-%) và giá bán lẻ RON95, E5 RON92, Dầu DO (đồng/lít).
+   Bỏ qua phần nào không có dữ liệu. Kết thúc bằng 1 câu nhận định cốt lõi. Tổng tối đa 250 từ.
 2. "report_markdown": Báo cáo phân tích đầy đủ định dạng Markdown lưu vào nhật ký, gồm:
    - Tổng quan diễn biến phiên giao dịch (Điểm số, thanh khoản so với trung bình, độ rộng thị trường).
    - Phân tích nhóm VN30, VN100 và các nhóm ngành nổi bật.
+   - Diễn biến giá vàng, giá dầu và tác động tới thị trường.
    - Nhận định xu hướng và khuyến nghị hành động ngắn hạn cho phiên tiếp theo.
 
 Định dạng trả về BẮT BUỘC là JSON hợp lệ theo cấu trúc:
@@ -153,10 +156,31 @@ class MarketAgentBrain:
                 notif_lines.append(f"• {sym}: {d.get('close', 'N/A')} ({sign}{d.get('change', 0):.2f}đ | {sign}{d.get('change_pct', 0):.2f}%)")
 
         if watchlist:
-            notif_lines.append("\n👀 Danh mục:")
+            notif_lines.append("\n📋 Danh mục:")
             for ticker, d in watchlist.items():
                 sign = "+" if d.get("change", 0) >= 0 else ""
                 notif_lines.append(f"• {ticker}: {d.get('close', 'N/A')} ({sign}{d.get('change', 0):.2f}đ | {sign}{d.get('change_pct', 0):.2f}%)")
+
+        gold = market_data.get("gold") or {}
+        sjc, xau = gold.get("sjc"), gold.get("world")
+        if sjc or xau:
+            notif_lines.append("\n🪙 Vàng:")
+            if sjc:
+                notif_lines.append(
+                    f"• SJC: {sjc['buy'] / 1e6:.1f} / {sjc['sell'] / 1e6:.1f} tr ({sjc['sell_change'] / 1e6:+.1f}tr)"
+                )
+            if xau:
+                notif_lines.append(f"• Thế giới: ${xau['price']:,.1f}/oz ({xau['change_pct']:+.2f}%)")
+
+        oil = market_data.get("oil") or {}
+        world_oil = {k: v for k, v in (oil.get("world") or {}).items() if v}
+        key_fuels = self._pick_key_fuels(oil.get("retail") or [])
+        if world_oil or key_fuels:
+            notif_lines.append("\n🛢️ Dầu:")
+            for name, d in world_oil.items():
+                notif_lines.append(f"• {name}: ${d['price']:,.2f} ({d['change_pct']:+.2f}%)")
+            for f in key_fuels:
+                notif_lines.append(f"• {f['name']}: {f['price_zone1']:,.0f}đ")
 
         if note:
             notif_lines.append(f"({note})")
@@ -189,9 +213,47 @@ class MarketAgentBrain:
                     f"| **{ticker}** | {d.get('close', 'N/A')} | {sign}{d.get('change', 0):.2f} | {sign}{d.get('change_pct', 0):.2f}% |"
                 )
 
+        if sjc or xau:
+            report_lines.extend(["", "## 3. Giá vàng", "| Loại | Giá | Thay đổi |", "| :--- | :---: | :---: |"])
+            if sjc:
+                report_lines.append(f"| **SJC - Mua** | {sjc['buy']:,.0f} đ/lượng | {sjc['buy_change']:+,.0f} |")
+                report_lines.append(f"| **SJC - Bán** | {sjc['sell']:,.0f} đ/lượng | {sjc['sell_change']:+,.0f} |")
+            if xau:
+                report_lines.append(f"| **Thế giới (XAU)** | ${xau['price']:,.2f}/oz | {xau['change']:+,.2f} ({xau['change_pct']:+.2f}%) |")
+
+        retail = [f for f in (oil.get("retail") or []) if f.get("price_zone1")]
+        if world_oil or retail:
+            report_lines.extend(["", "## 4. Giá dầu"])
+            if world_oil:
+                report_lines.extend(["| Dầu thô | Giá (USD/thùng) | Thay đổi |", "| :--- | :---: | :---: |"])
+                for name, d in world_oil.items():
+                    report_lines.append(f"| **{name}** | ${d['price']:,.2f} | {d['change']:+,.2f} ({d['change_pct']:+.2f}%) |")
+            if retail:
+                report_lines.extend([
+                    "",
+                    "| Xăng dầu bán lẻ | Vùng 1 (đ/lít) | Vùng 2 (đ/lít) | Kỳ điều chỉnh gần nhất |",
+                    "| :--- | :---: | :---: | :---: |",
+                ])
+                for f in retail:
+                    z2 = f"{f['price_zone2']:,.0f}" if f.get("price_zone2") else "-"
+                    report_lines.append(
+                        f"| {f['name']} | {f['price_zone1']:,.0f} | {z2} | {f.get('last_adjustment', 0):+,.0f} |"
+                    )
+
         if note:
             report_lines.extend(["", f"> [!NOTE]\n> {note}"])
 
         full_md = "\n".join(report_lines)
         return short_notif, full_md
+
+    @staticmethod
+    def _pick_key_fuels(retail: list) -> list:
+        """Pick RON95, E5 RON92 and DO 0,05S from the retail fuel list (first match each)."""
+        picks = []
+        for keyword in ["RON 95", "E5 RON 92", "DO 0,05S"]:
+            for f in retail:
+                if keyword in f.get("name", "") and f.get("price_zone1") and f not in picks:
+                    picks.append(f)
+                    break
+        return picks
 

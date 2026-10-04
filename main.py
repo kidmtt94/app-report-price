@@ -17,6 +17,7 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
 
 from src.config import parse_args
 from src.market_data import fetch_market_snapshot
+from src.commodity_data import fetch_gold, fetch_oil
 from src.agent_brain import MarketAgentBrain
 from src.notifier import BarkNotifier
 
@@ -45,6 +46,20 @@ def main():
     for sym, d in snapshot["indices"].items():
         sign = "+" if d.get("change", 0) >= 0 else ""
         print(f"   • {sym}: {d.get('close')} ({sign}{d.get('change')}đ | {sign}{d.get('change_pct')}%) - Khối lượng: {d.get('volume'):,}")
+
+    print("\n📥 Đang lấy giá vàng & giá dầu...")
+    snapshot["gold"] = fetch_gold()
+    snapshot["oil"] = fetch_oil()
+    sjc = snapshot["gold"].get("sjc")
+    xau = snapshot["gold"].get("world")
+    if sjc:
+        print(f"   • Vàng SJC: Mua {sjc['buy']:,.0f} / Bán {sjc['sell']:,.0f} VND/lượng")
+    if xau:
+        print(f"   • Vàng thế giới: ${xau['price']:,.2f}/oz ({xau['change_pct']:+.2f}%)")
+    for name, d in snapshot["oil"].get("world", {}).items():
+        if d:
+            print(f"   • Dầu {name}: ${d['price']:,.2f}/thùng ({d['change_pct']:+.2f}%)")
+    print(f"   • Xăng dầu bán lẻ: {len(snapshot['oil'].get('retail', []))} mặt hàng")
 
     # 2. Analyze with Agent Brain
     print("\n[2/4] 🧠 Đang phân tích thị trường với Agent Brain...")
