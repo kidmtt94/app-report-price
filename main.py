@@ -17,7 +17,7 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
 
 from src.config import parse_args
 from src.market_data import fetch_market_snapshot
-from src.commodity_data import fetch_gold, fetch_oil
+from src.commodity_data import fetch_gold, fetch_oil, fetch_crypto
 from src.agent_brain import MarketAgentBrain
 from src.notifier import BarkNotifier
 
@@ -47,9 +47,10 @@ def main():
         sign = "+" if d.get("change", 0) >= 0 else ""
         print(f"   • {sym}: {d.get('close')} ({sign}{d.get('change')}đ | {sign}{d.get('change_pct')}%) - Khối lượng: {d.get('volume'):,}")
 
-    print("\n📥 Đang lấy giá vàng & giá dầu...")
+    print("\n📥 Đang lấy giá vàng, giá dầu & tiền mã hóa (crypto)...")
     snapshot["gold"] = fetch_gold()
     snapshot["oil"] = fetch_oil()
+    snapshot["crypto"] = fetch_crypto()
     sjc = snapshot["gold"].get("sjc")
     xau = snapshot["gold"].get("world")
     if sjc:
@@ -60,6 +61,9 @@ def main():
         if d:
             print(f"   • Dầu {name}: ${d['price']:,.2f}/thùng ({d['change_pct']:+.2f}%)")
     print(f"   • Xăng dầu bán lẻ: {len(snapshot['oil'].get('retail', []))} mặt hàng")
+    for coin, d in snapshot["crypto"].items():
+        if d:
+            print(f"   • {coin}: ${d['price']:,.2f} ({d['change_pct']:+.2f}%)")
 
     # 2. Analyze with Agent Brain
     print("\n[2/4] 🧠 Đang phân tích thị trường với Agent Brain...")

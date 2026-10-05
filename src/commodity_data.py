@@ -18,11 +18,13 @@ HEADERS = {
 }
 TIMEOUT = 20
 
-# Yahoo Finance tickers for world prices
+# Yahoo Finance tickers for world prices & crypto
 WORLD_TICKERS = {
-    "XAU": "GC=F",    # Gold futures (USD/oz)
-    "BRENT": "BZ=F",  # Brent crude (USD/barrel)
-    "WTI": "CL=F",    # WTI crude (USD/barrel)
+    "XAU": "GC=F",      # Gold futures (USD/oz)
+    "BRENT": "BZ=F",    # Brent crude (USD/barrel)
+    "WTI": "CL=F",      # WTI crude (USD/barrel)
+    "BTC": "BTC-USD",   # Bitcoin (USD)
+    "ETH": "ETH-USD",   # Ethereum (USD)
 }
 
 
@@ -202,3 +204,42 @@ def fetch_oil() -> Dict[str, Any]:
             "WTI": fetch_world_price(WORLD_TICKERS["WTI"]),
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Crypto (BTC & ETH)
+# ---------------------------------------------------------------------------
+def fetch_crypto() -> Dict[str, Any]:
+    """
+    Fetch BTC and ETH prices in USD.
+    Primary source: Yahoo Finance.
+    Fallback: Binance public 24hr ticker API.
+    """
+    coins = {
+        "BTC": {"yahoo": WORLD_TICKERS["BTC"], "binance": "BTCUSDT"},
+        "ETH": {"yahoo": WORLD_TICKERS["ETH"], "binance": "ETHUSDT"},
+    }
+    crypto_data = {}
+    for coin, syms in coins.items():
+        data = fetch_world_price(syms["yahoo"])
+        if not data:
+            try:
+                url = f"https://api.binance.com/api/v3/ticker/24hr?symbol={syms['binance']}"
+                res = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+                if res.status_code == 200:
+                    d = res.json()
+                    last = float(d["lastPrice"])
+                    change_pct = float(d["priceChangePercent"])
+                    change = float(d["priceChange"])
+                    prev = round(last - change, 2)
+                    data = {
+                        "price": round(last, 2),
+                        "prev_close": prev,
+                        "change": round(change, 2),
+                        "change_pct": round(change_pct, 2),
+                    }
+            except Exception as e:
+                logger.error(f"Error fetching {coin} from Binance: {e}")
+        if data:
+            crypto_data[coin] = data
+    return crypto_data

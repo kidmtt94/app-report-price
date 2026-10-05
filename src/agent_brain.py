@@ -7,17 +7,18 @@ logger = logging.getLogger(__name__)
 
 
 SYSTEM_PROMPT = """Bạn là một chuyên gia tài chính và chuyên viên phân tích thị trường chứng khoán Việt Nam sắc bén, súc tích và khách quan.
-Nhiệm vụ của bạn là nhận dữ liệu cuối ngày (EOD) gồm: các chỉ số VNINDEX, VN30, VN100, các mã cổ phiếu theo dõi, giá vàng (SJC trong nước + thế giới) và giá dầu (xăng dầu bán lẻ trong nước + dầu thô Brent/WTI), sau đó tạo ra 2 nội dung:
+Nhiệm vụ của bạn là nhận dữ liệu cuối ngày (EOD) gồm: các chỉ số VNINDEX, VN30, VN100, các mã cổ phiếu theo dõi, giá vàng (SJC trong nước + thế giới), giá dầu (xăng dầu bán lẻ trong nước + dầu thô Brent/WTI) và tiền mã hóa (Bitcoin BTC, Ethereum ETH), sau đó tạo ra 2 nội dung:
 1. "notification": Một bản tin ngắn gọn để bắn pop-up notification lên màn hình khóa điện thoại iPhone. Gồm các phần rõ ràng:
    - Phần 1 (📊 Chỉ số): điểm số, mức tăng/giảm (+/- điểm, +/-%) của VNINDEX, VN30, VN100.
    - Phần 2 (👀 Danh mục): nếu có dữ liệu watchlist, liệt kê từng mã cổ phiếu với giá đóng cửa và % thay đổi. Nếu không có watchlist thì bỏ qua phần này.
    - Phần 3 (🥇 Vàng): giá SJC mua/bán (triệu đồng/lượng) kèm thay đổi, và vàng thế giới (USD/oz, +/-%).
    - Phần 4 (🛢️ Dầu): Brent, WTI (USD/thùng, +/-%) và giá bán lẻ RON95, E5 RON92, Dầu DO (đồng/lít).
-   Bỏ qua phần nào không có dữ liệu. Kết thúc bằng 1 câu nhận định cốt lõi. Tổng tối đa 250 từ.
+   - Phần 5 (🪙 Crypto): giá BTC, ETH (USD, +/-%).
+   Bỏ qua phần nào không có dữ liệu. Kết thúc bằng 1 câu nhận định cốt lõi. Tổng tối đa 300 từ.
 2. "report_markdown": Báo cáo phân tích đầy đủ định dạng Markdown lưu vào nhật ký, gồm:
    - Tổng quan diễn biến phiên giao dịch (Điểm số, thanh khoản so với trung bình, độ rộng thị trường).
    - Phân tích nhóm VN30, VN100 và các nhóm ngành nổi bật.
-   - Diễn biến giá vàng, giá dầu và tác động tới thị trường.
+   - Diễn biến giá vàng, giá dầu, tiền mã hóa (BTC, ETH) và bối cảnh vĩ mô.
    - Nhận định xu hướng và khuyến nghị hành động ngắn hạn cho phiên tiếp theo.
 
 Định dạng trả về BẮT BUỘC là JSON hợp lệ theo cấu trúc:
@@ -182,6 +183,15 @@ class MarketAgentBrain:
             for f in key_fuels:
                 notif_lines.append(f"• {f['name']}: {f['price_zone1']:,.0f}đ")
 
+        crypto = market_data.get("crypto") or {}
+        valid_crypto = {k: v for k, v in crypto.items() if v}
+        if valid_crypto:
+            notif_lines.append("\n🪙 Crypto:")
+            for coin in ["BTC", "ETH"]:
+                if coin in valid_crypto:
+                    d = valid_crypto[coin]
+                    notif_lines.append(f"• {coin}: ${d['price']:,.2f} ({d['change_pct']:+.2f}%)")
+
         if note:
             notif_lines.append(f"({note})")
         short_notif = "\n".join(notif_lines)
@@ -239,6 +249,13 @@ class MarketAgentBrain:
                     report_lines.append(
                         f"| {f['name']} | {f['price_zone1']:,.0f} | {z2} | {f.get('last_adjustment', 0):+,.0f} |"
                     )
+
+        if valid_crypto:
+            report_lines.extend(["", "## 5. Tiền mã hóa (Crypto)", "| Đồng tiền | Giá (USD) | Thay đổi |", "| :--- | :---: | :---: |"])
+            for coin in ["BTC", "ETH"]:
+                if coin in valid_crypto:
+                    d = valid_crypto[coin]
+                    report_lines.append(f"| **{coin}** | ${d['price']:,.2f} | {d['change']:+,.2f} ({d['change_pct']:+.2f}%) |")
 
         if note:
             report_lines.extend(["", f"> [!NOTE]\n> {note}"])

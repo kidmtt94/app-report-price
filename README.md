@@ -15,6 +15,7 @@ Phân tích bằng **AI Gemini**, chạy hoàn toàn **miễn phí** trên GitHu
 | 📊 Theo dõi VNINDEX, VN30, VN100 và cổ phiếu riêng | **Miễn phí** |
 | 🥇 Báo cáo giá vàng SJC trong nước + Vàng thế giới | **Miễn phí** |
 | 🛢️ Báo cáo giá xăng dầu bán lẻ Petrolimex + Dầu Brent/WTI | **Miễn phí** |
+| 🪙 Báo cáo tiền mã hóa Bitcoin (BTC), Ethereum (ETH) | **Miễn phí** |
 
 ---
 
